@@ -1,0 +1,463 @@
+from IPython.display import HTML
+import tkinter as tk
+import customtkinter as ctk
+from tkinter import messagebox
+import csv
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import webbrowser
+import os
+
+class CriticalMineralsApp:
+    def __init__(self, root):
+        self.window = root
+        self.window.geometry("1200x900")
+        self.window.title("African Critical Minerals Database")
+        
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("dark-blue")
+        
+        self.create_sample_data()
+        self.create_login_frame()
+
+    def clear_frame(self):
+        for widget in self.window.winfo_children():
+            widget.destroy()
+
+    def create_login_frame(self):
+        self.clear_frame()
+        
+        ctk.CTkLabel(self.window, text="African Critical Minerals Database", 
+                   font=("Arial", 32, "bold"), text_color="lightgreen").pack(pady=40)
+        
+        form_frame = ctk.CTkFrame(self.window, width=500, height=300)
+        form_frame.pack(pady=40, padx=150)
+        form_frame.pack_propagate(False)
+        
+        self.username_entry = ctk.CTkEntry(form_frame, placeholder_text="Username", 
+                                         width=350, height=45, font=("Arial", 16))
+        self.username_entry.pack(pady=20, padx=20)
+        
+        self.password_entry = ctk.CTkEntry(form_frame, placeholder_text="Password", 
+                                         show='*', width=350, height=45, font=("Arial", 16))
+        self.password_entry.pack(pady=20, padx=20)
+
+        button_frame = ctk.CTkFrame(self.window, fg_color="transparent")
+        button_frame.pack(pady=20)
+        
+        ctk.CTkButton(button_frame, text="Login", command=self.check_login, 
+                     width=250, height=45, font=("Arial", 16, "bold")).pack(pady=15)
+        ctk.CTkButton(button_frame, text="Sign in", command=self.create_registration_frame, 
+                     width=250, height=45, font=("Arial", 16)).pack(pady=10)
+
+        signup_text_frame = ctk.CTkFrame(self.window, fg_color="transparent")
+        signup_text_frame.pack(pady=20)
+        
+        ctk.CTkLabel(signup_text_frame, text="Don't have an account? Click 'Sign in' to register", 
+                   font=("Arial", 14), text_color="lightgray").pack()
+
+    def create_registration_frame(self):
+        self.clear_frame()
+        
+        ctk.CTkLabel(self.window, text="Register New Account", 
+                   font=("Arial", 28, "bold")).pack(pady=40)
+
+        form_frame = ctk.CTkFrame(self.window, width=500, height=400)
+        form_frame.pack(pady=30, padx=150)
+        form_frame.pack_propagate(False)
+
+        self.new_username_entry = ctk.CTkEntry(form_frame, placeholder_text="New Username", 
+                                             width=350, height=45, font=("Arial", 16))
+        self.new_username_entry.pack(pady=20, padx=20)
+
+        self.new_password_entry = ctk.CTkEntry(form_frame, placeholder_text="New Password", 
+                                             show='*', width=350, height=45, font=("Arial", 16))
+        self.new_password_entry.pack(pady=20, padx=20)
+
+        ctk.CTkLabel(form_frame, text="Select Role:", 
+                   font=("Arial", 16)).pack(pady=(20, 10))
+        self.role_var = ctk.StringVar(value="Select your role")
+        self.role_dropdown = ctk.CTkComboBox(form_frame, 
+                                           values=["Investor", "Researcher", "Admin"],
+                                           variable=self.role_var,
+                                           width=350, 
+                                           height=45,
+                                           font=("Arial", 16))
+        self.role_dropdown.pack(pady=10, padx=20)
+
+        button_frame = ctk.CTkFrame(self.window, fg_color="transparent")
+        button_frame.pack(pady=30)
+        
+        ctk.CTkButton(button_frame, text="Register", command=self.register_user, 
+                     width=250, height=45, font=("Arial", 16, "bold")).pack(pady=15)
+        ctk.CTkButton(button_frame, text="Back to Login", command=self.create_login_frame, 
+                     width=250, height=45, font=("Arial", 16)).pack(pady=10)
+
+    def register_user(self):
+        username = self.new_username_entry.get()
+        password = self.new_password_entry.get()
+        role = self.role_var.get()
+
+        if username and password and role != "Select your role":
+            with open('Users_.csv', 'a', newline='') as file:
+                csv.writer(file).writerow([username, password, role])
+            messagebox.showinfo("Success", "User registered successfully!")
+            self.create_login_frame()
+        else:
+            messagebox.showerror("Error", "All fields are required and please select a valid role!")
+
+    def check_login(self):
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+
+        try:
+            with open('Users_.csv', 'r') as file:
+                users = [line.strip().split(',') for line in file.readlines()]
+                user_found = False
+                for user in users:
+                    if len(user) >= 2 and user[0] == username and user[1] == password:
+                        user_found = True
+                        break
+                
+                if user_found:
+                    self.create_main_menu()
+                else:
+                    messagebox.showerror("Login Failed", "Invalid credentials!")
+        except FileNotFoundError:
+            messagebox.showinfo("Info", "No users found. Please register first.")
+            self.create_registration_frame()
+
+    def create_main_menu(self):
+        self.clear_frame()
+        
+        header_frame = ctk.CTkFrame(self.window)
+        header_frame.pack(fill="x", padx=30, pady=30)
+        
+        ctk.CTkLabel(header_frame, text="African Critical Minerals Dashboard", 
+                   font=("Arial", 32, "bold"), text_color="yellow").pack(pady=30)
+
+        menu_frame = ctk.CTkFrame(self.window)
+        menu_frame.pack(fill="both", expand=True, padx=80, pady=40)
+        
+        buttons = [
+            ("Mineral Database", self.mineral_database),
+            ("Geographical Data", self.geographical_data),
+            ("Country Profile", self.country_profile),
+            ("Interactive Charts", self.interactive_charts),
+            ("Production & Export Data", self.production_export_data)
+        ]
+        
+        for text, command in buttons:
+            btn = ctk.CTkButton(menu_frame, text=text, command=command, 
+                              width=500, height=60, font=("Arial", 18, "bold"),
+                              corner_radius=15)
+            btn.pack(pady=20)
+
+        ctk.CTkButton(self.window, text="Logout", command=self.create_login_frame, 
+                     width=250, height=50, font=("Arial", 16)).pack(pady=30)
+
+    def create_sample_data(self):
+        # Mineral data from the second image
+        self.minerals_df = pd.DataFrame({
+            'MineralID': [1, 2, 3, 4],
+            'MineralName': ['Cobalt', 'Lithium', 'Graphite', 'Manganese'],
+            'Description': ['Used in batteries and alloys', 'Essential for EV batteries', 
+                          'Used in batteries and lubricants', 'Used in steel production'],
+            'MarketPriceUSD_per_tonne': [52000, 70000, 800, 2200]
+        })
+        
+        # Production and export data from the first image
+        self.production_df = pd.DataFrame({
+            'StatiD': [1, 2, 3, 4, 5, 6],
+            'Year': [2023, 2023, 2023, 2023, 2024, 2024],
+            'CountryID': [1, 2, 3, 4, 1, 2],
+            'MineralID': [1, 2, 3, 4, 1, 2],
+            'Production_tomies': [100000, 120000, 50000, 200000, 110000, 130000],
+            'ExportValue_BillionUSD': [5.2, 8.4, 0.9, 2.7, 6.0, 9.1]
+        })
+        
+        # Country data (enhanced with more details)
+        self.countries_df = pd.DataFrame({
+            'CountryID': [1, 2, 3, 4],
+            'CountryName': ['DRC (Congo)', 'South Africa', 'Mozambique', 'Namibia'],
+            'Capital': ['Kinshasa', 'Pretoria', 'Maputo', 'Windhoek'],
+            'GDP_BillionUSD': [55, 350, 20, 15],
+            'MiningRevenue_BillionUSD': [12, 25, 4, 3],
+            'Population_Millions': [95, 60, 32, 2.5],
+            'MainMinerals': ['Cobalt, Copper, Diamonds', 'Gold, Platinum, Lithium', 
+                           'Graphite, Coal, Titanium', 'Diamonds, Uranium, Manganese']
+        })
+
+    def create_back_button(self):
+        ctk.CTkButton(self.window, text="← Back to Main Menu", 
+                     command=self.create_main_menu, width=250, height=50, 
+                     font=("Arial", 16)).pack(pady=20)
+
+    def mineral_database(self):
+        self.clear_frame()
+        ctk.CTkLabel(self.window, text="Mineral Database", 
+                   font=("Arial", 32, "bold")).pack(pady=30)
+
+        scroll_frame = ctk.CTkScrollableFrame(self.window, width=1000, height=600)
+        scroll_frame.pack(fill="both", expand=True, padx=40, pady=20)
+        
+        for _, mineral in self.minerals_df.iterrows():
+            frame = ctk.CTkFrame(scroll_frame, height=120)
+            frame.pack(fill="x", pady=10, padx=20)
+            frame.pack_propagate(False)
+            
+            ctk.CTkLabel(frame, text=f"🔹 {mineral['MineralName']}", 
+                       font=("Arial", 20, "bold")).pack(anchor="w", pady=(10, 5), padx=15)
+            ctk.CTkLabel(frame, text=f"Description: {mineral['Description']}", 
+                       font=("Arial", 16)).pack(anchor="w", pady=5, padx=15)
+            ctk.CTkLabel(frame, text=f"Market Price: ${mineral['MarketPriceUSD_per_tonne']:,.0f}/tonne", 
+                       text_color="yellow", font=("Arial", 16, "bold")).pack(anchor="w", pady=5, padx=15)
+        
+        self.create_back_button()
+
+    def geographical_data(self):
+        self.clear_frame()
+        ctk.CTkLabel(self.window, text="Geographical Data", 
+                   font=("Arial", 32, "bold")).pack(pady=30)
+
+        # Create merged data for map markers
+        merged_data = pd.merge(self.production_df, self.minerals_df, on='MineralID')
+        merged_data = pd.merge(merged_data, self.countries_df, on='CountryID')
+        
+        html_content = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>African Mining Sites</title>
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+            <style>
+                #map { height: 600px; width: 100%; }
+                .leaflet-popup-content { font-size: 14px; }
+            </style>
+        </head>
+        <body>
+            <div id="map"></div>
+            <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+            <script>
+                var map = L.map('map').setView([-8, 25], 4);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+                    attribution: '© OpenStreetMap' 
+                }).addTo(map);
+        """
+        
+        # Coordinates for countries (approximate)
+        country_coords = {
+            1: [-4.0383, 21.7587],  # DRC
+            2: [-28.4793, 24.6727],  # South Africa
+            3: [-18.6657, 35.5296],  # Mozambique
+            4: [-22.9576, 18.4904]   # Namibia
+        }
+        
+        # Add markers for each production site
+        for _, row in merged_data.iterrows():
+            lat, lng = country_coords[row['CountryID']]
+            html_content += f"""
+                L.marker([{lat}, {lng}]).addTo(map)
+                    .bindPopup('<b>{row['CountryName']} - {row['MineralName']}</b><br>
+                               Production: {row['Production_tomies']:,.0f} tonnes<br>
+                               Export Value: ${row['ExportValue_BillionUSD']}B<br>
+                               Year: {row['Year']}');
+            """
+        
+        html_content += """
+            </script>
+        </body>
+        </html>
+        """
+
+        map_file = "mining_map.html"
+        with open(map_file, "w") as f:
+            f.write(html_content)
+
+        ctk.CTkButton(self.window, text=" Open Interactive Map in Browser", 
+                     command=lambda: webbrowser.open(f"file://{os.path.abspath(map_file)}"),
+                     width=400, height=50, font=("Arial", 16, "bold")).pack(pady=20)
+
+        # Display production sites
+        sites_frame = ctk.CTkFrame(self.window)
+        sites_frame.pack(fill="both", expand=True, padx=40, pady=20)
+        
+        ctk.CTkLabel(sites_frame, text="Production Sites (2023-2024)", 
+                   font=("Arial", 20, "bold")).pack(pady=15)
+        
+        for _, row in merged_data.iterrows():
+            site_text = f" {row['CountryName']} - {row['MineralName']} - {row['Production_tomies']:,.0f} tonnes - ${row['ExportValue_BillionUSD']}B - {row['Year']}"
+            ctk.CTkLabel(sites_frame, text=site_text, font=("Arial", 14)).pack(anchor="w", pady=8, padx=20)
+        
+        self.create_back_button()
+
+    def country_profile(self):
+        self.clear_frame()
+        ctk.CTkLabel(self.window, text="Country Profiles", 
+                   font=("Arial", 32, "bold")).pack(pady=30)
+
+        tabview = ctk.CTkTabview(self.window, width=1000, height=600)
+        tabview.pack(fill="both", expand=True, padx=40, pady=20)
+        
+        for country in self.countries_df['CountryName']:
+            tab = tabview.add(country)
+            country_data = self.countries_df[self.countries_df['CountryName'] == country].iloc[0]
+            
+            # Get production data for this country
+            country_id = country_data['CountryID']
+            production_data = self.production_df[self.production_df['CountryID'] == country_id]
+            merged_production = pd.merge(production_data, self.minerals_df, on='MineralID')
+            
+            info_frame = ctk.CTkFrame(tab)
+            info_frame.pack(fill="both", expand=True, padx=20, pady=20)
+            
+            # Basic country info
+            basic_info = f"""
+            Capital: {country_data['Capital']}
+            GDP: ${country_data['GDP_BillionUSD']} billion
+            Mining Revenue: ${country_data['MiningRevenue_BillionUSD']} billion
+            Population: {country_data['Population_Millions']} million
+            Main Minerals: {country_data['MainMinerals']}
+            """
+            
+            ctk.CTkLabel(info_frame, text="Country Information", 
+                       font=("Arial", 18, "bold")).pack(anchor="w", pady=(10, 5))
+            ctk.CTkLabel(info_frame, text=basic_info, font=("Arial", 16), 
+                       justify="left").pack(anchor="w", pady=5, padx=20)
+            
+            # Production data
+            if not merged_production.empty:
+                ctk.CTkLabel(info_frame, text="Production Data", 
+                           font=("Arial", 18, "bold")).pack(anchor="w", pady=(20, 10))
+                
+                for _, prod in merged_production.iterrows():
+                    prod_text = f"• {prod['MineralName']} ({prod['Year']}): {prod['Production_tomies']:,.0f} tonnes, Export: ${prod['ExportValue_BillionUSD']}B"
+                    ctk.CTkLabel(info_frame, text=prod_text, font=("Arial", 14)).pack(anchor="w", pady=2, padx=20)
+        
+        self.create_back_button()
+
+    def interactive_charts(self):
+        self.clear_frame()
+        ctk.CTkLabel(self.window, text="Interactive Charts", 
+                   font=("Arial", 32, "bold")).pack(pady=30)
+
+        tabview = ctk.CTkTabview(self.window, width=1000, height=600)
+        tabview.pack(fill="both", expand=True, padx=40, pady=20)
+        
+        # Tab 1: Mineral Prices
+        prices_tab = tabview.add("Mineral Prices")
+        
+        fig1, ax1 = plt.subplots(figsize=(10, 6))
+        self.minerals_df.plot.bar(x='MineralName', y='MarketPriceUSD_per_tonne', 
+                                ax=ax1, legend=False, 
+                                color=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'])
+        ax1.set_title('Mineral Prices (USD/tonne)', fontsize=16, fontweight='bold')
+        ax1.set_ylabel('Price (USD/tonne)', fontsize=14)
+        ax1.tick_params(axis='x', rotation=45)
+        
+        canvas1 = FigureCanvasTkAgg(fig1, prices_tab)
+        canvas1.draw()
+        canvas1.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Tab 2: Production by Country and Mineral
+        production_tab = tabview.add("Production Data")
+        
+        # Merge data for production chart
+        merged_data = pd.merge(self.production_df, self.minerals_df, on='MineralID')
+        merged_data = pd.merge(merged_data, self.countries_df, on='CountryID')
+        
+        fig2, ax2 = plt.subplots(figsize=(12, 7))
+        
+        # Group by country and mineral for 2023 data
+        production_2023 = merged_data[merged_data['Year'] == 2023]
+        pivot_data = production_2023.pivot_table(
+            index='CountryName', 
+            columns='MineralName', 
+            values='Production_tomies', 
+            aggfunc='sum'
+        ).fillna(0)
+        
+        pivot_data.plot(kind='bar', ax=ax2, width=0.8)
+        ax2.set_title('Mineral Production by Country (2023)', fontsize=16, fontweight='bold')
+        ax2.set_ylabel('Production (tonnes)', fontsize=14)
+        ax2.legend(title='Minerals')
+        ax2.tick_params(axis='x', rotation=45)
+        
+        canvas2 = FigureCanvasTkAgg(fig2, production_tab)
+        canvas2.draw()
+        canvas2.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Tab 3: Export Values
+        export_tab = tabview.add("Export Values")
+        
+        fig3, ax3 = plt.subplots(figsize=(12, 7))
+        
+        export_2023 = merged_data[merged_data['Year'] == 2023]
+        export_pivot = export_2023.pivot_table(
+            index='CountryName',
+            columns='MineralName',
+            values='ExportValue_BillionUSD',
+            aggfunc='sum'
+        ).fillna(0)
+        
+        export_pivot.plot(kind='bar', ax=ax3, width=0.8)
+        ax3.set_title('Export Value by Country and Mineral (2023, Billion USD)', 
+                     fontsize=16, fontweight='bold')
+        ax3.set_ylabel('Export Value (Billion USD)', fontsize=14)
+        ax3.legend(title='Minerals')
+        ax3.tick_params(axis='x', rotation=45)
+        
+        canvas3 = FigureCanvasTkAgg(fig3, export_tab)
+        canvas3.draw()
+        canvas3.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
+        
+        self.create_back_button()
+
+    def production_export_data(self):
+        self.clear_frame()
+        ctk.CTkLabel(self.window, text="Production & Export Data", 
+                   font=("Arial", 32, "bold")).pack(pady=30)
+
+        # Merge all data for display
+        merged_data = pd.merge(self.production_df, self.minerals_df, on='MineralID')
+        merged_data = pd.merge(merged_data, self.countries_df, on='CountryID')
+        
+        scroll_frame = ctk.CTkScrollableFrame(self.window, width=1000, height=600)
+        scroll_frame.pack(fill="both", expand=True, padx=40, pady=20)
+        
+        # Create a table-like display
+        headers = ["Year", "Country", "Mineral", "Production (tonnes)", "Export Value (Billion USD)"]
+        header_frame = ctk.CTkFrame(scroll_frame)
+        header_frame.pack(fill="x", pady=5, padx=10)
+        
+        for i, header in enumerate(headers):
+            ctk.CTkLabel(header_frame, text=header, font=("Arial", 16, "bold"),
+                       width=200 if i < 3 else 250).grid(row=0, column=i, padx=5, pady=10)
+        
+        # Display data rows
+        for idx, row in merged_data.iterrows():
+            data_frame = ctk.CTkFrame(scroll_frame)
+            data_frame.pack(fill="x", pady=3, padx=10)
+            
+            ctk.CTkLabel(data_frame, text=str(row['Year']), font=("Arial", 14),
+                       width=200).grid(row=0, column=0, padx=5, pady=8)
+            ctk.CTkLabel(data_frame, text=row['CountryName'], font=("Arial", 14),
+                       width=200).grid(row=0, column=1, padx=5, pady=8)
+            ctk.CTkLabel(data_frame, text=row['MineralName'], font=("Arial", 14),
+                       width=200).grid(row=0, column=2, padx=5, pady=8)
+            ctk.CTkLabel(data_frame, text=f"{row['Production_tomies']:,.0f}", 
+                       font=("Arial", 14), width=250).grid(row=0, column=3, padx=5, pady=8)
+            ctk.CTkLabel(data_frame, text=f"${row['ExportValue_BillionUSD']}", 
+                       font=("Arial", 14), text_color="lightgreen", 
+                       width=250).grid(row=0, column=4, padx=5, pady=8)
+        
+        self.create_back_button()
+
+def run_app():
+    root = ctk.CTk()
+    app = CriticalMineralsApp(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    run_app()
