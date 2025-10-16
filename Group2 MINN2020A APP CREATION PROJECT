@@ -1,0 +1,740 @@
+!pip install folium
+!pip install tkinterweb
+!pip install fpdf
+
+from IPython.display import HTML
+import tkinter as tk
+import customtkinter as ctk
+from tkinter import messagebox, simpledialog
+import csv
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import webbrowser
+import os
+
+# Appearance
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("dark-blue")
+
+
+class CriticalMineralsApp:
+    
+    #African Critical Minerals Database Role-based UI: Administrator, Researcher, Investor
+    
+
+    def __init__(self, root):
+        self.window = root
+        self.window.geometry("920x660")
+        self.window.title("African Critical Minerals Database")
+
+        # session
+        self.current_user = None
+        self.current_role = None  # normalized role: "Administrator", "Researcher", "Investor"
+
+        # users information files
+        self.users_file = "Users_.csv"
+        self.users = {}
+
+        # sample data
+        self.create_sample_data()
+        self.load_users()
+        self.create_login_frame()
+
+    # Cleaning/normalising the data 
+    
+    def normalize_role(self, role_str: str) -> str:
+        #Clean a role string to one of Administrator/Researcher/Investor.
+        if not role_str:
+            return ""
+        r = role_str.strip().lower()
+        if r.startswith("admin"):
+            return "Administrator"
+        if "research" in r:
+            return "Researcher"
+        if "invest" in r:
+            return "Investor"
+        # fallback: return title-cased input
+        return role_str.strip().title()
+
+    
+    # Always storing the data
+    
+    def load_users(self):
+        # Load users CSV into self.users dict. If no users exist, create a default admin (admin/admin).
+        # ensure file exists
+        if not os.path.exists(self.users_file):
+            with open(self.users_file, "w", newline="") as f:
+                pass
+
+        try:
+            self.users = {}
+            with open(self.users_file, "r", newline="") as file:
+                reader = csv.reader(file)
+                for row in reader:
+                    if len(row) >= 3:
+                        username = row[0].strip()
+                        password = row[1].strip()
+                        role = self.normalize_role(row[2].strip())
+                        if username:
+                            self.users[username] = {"password": password, "role": role}
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load users: {e}")
+            self.users = {}
+
+        # if no users found, create a default admin for first run
+        if not self.users:
+            self.users["admin"] = {"password": "admin", "role": "Administrator"}
+            self.save_users()
+
+    def save_users(self):
+        #Save self.users to CSV.
+        try:
+            with open(self.users_file, "w", newline="") as file:
+                writer = csv.writer(file)
+                for user, data in self.users.items():
+                    writer.writerow([user, data["password"], data["role"]])
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save users: {e}")
+
+    # Theme helpers
+    def get_role_theme(self):
+        themes = {
+            "Administrator": {
+                "primary": "gray",
+                "secondary": "darkred",
+                "accent": "orange",
+                "text_color": "white"
+            },
+            "Researcher": {
+                "primary": "gray",
+                "secondary": "darkblue",
+                "accent": "lightblue",
+                "text_color": "white"
+            },
+            "Investor": {
+                "primary": "gray",
+                "secondary": "darkgreen",
+                "accent": "lightgreen",
+                "text_color": "white"
+            }
+        }
+        return themes.get(self.current_role, {
+            "primary": "gray",
+            "secondary": "navy",
+            "accent": "lightblue",
+            "text_color": "white"
+        })
+
+    # User Interface helpers
+    def clear_frame(self):
+        for w in self.window.winfo_children():
+            w.destroy()
+
+    # Registration
+    def create_login_frame(self):
+        self.clear_frame()
+
+        ctk.CTkLabel(self.window, text="African Critical Minerals Database",
+                     font=("Arial", 20, "bold"), text_color="lightgreen").pack(pady=18)
+
+        form = ctk.CTkFrame(self.window)
+        form.pack(pady=12, padx=60)
+
+        self.username_entry = ctk.CTkEntry(form, placeholder_text="Username", width=220)
+        self.username_entry.pack(pady=8, padx=10)
+
+        self.password_entry = ctk.CTkEntry(form, placeholder_text="Password", show='*', width=220)
+        self.password_entry.pack(pady=8, padx=10)
+
+        btns = ctk.CTkFrame(self.window, fg_color="transparent")
+        btns.pack(pady=10)
+
+        ctk.CTkButton(btns, text="Login", command=self.check_login, width=160).pack(pady=6)
+        ctk.CTkButton(btns, text="Sign in", command=self.create_registration_frame, width=160).pack(pady=6)
+
+        ctk.CTkLabel(self.window, text="(Don't have an account? Sign in)",
+                     font=("Arial", 10), text_color="lightgray").pack(pady=6)
+
+    def create_registration_frame(self):
+        self.clear_frame()
+
+        ctk.CTkLabel(self.window, text="Register New Account", font=("Arial", 18, "bold")).pack(pady=14)
+
+        form = ctk.CTkFrame(self.window)
+        form.pack(pady=8, padx=60)
+
+        self.new_username_entry = ctk.CTkEntry(form, placeholder_text="New Username", width=220)
+        self.new_username_entry.pack(pady=6, padx=6)
+
+        self.new_password_entry = ctk.CTkEntry(form, placeholder_text="New Password", show='*', width=220)
+        self.new_password_entry.pack(pady=6, padx=6)
+
+        ctk.CTkLabel(form, text="Select Role:", font=("Arial", 11)).pack(pady=(8, 2))
+        self.role_var = ctk.StringVar(value="Researcher")
+        # list roles in normalized form so saved role is consistent
+        self.role_dropdown = ctk.CTkComboBox(form, values=["Administrator", "Researcher", "Investor"],
+                                             variable=self.role_var, width=220)
+        self.role_dropdown.pack(pady=6)
+
+        btns = ctk.CTkFrame(self.window, fg_color="transparent")
+        btns.pack(pady=10)
+        ctk.CTkButton(btns, text="Register", command=self.register_user, width=160).pack(pady=6)
+        ctk.CTkButton(btns, text="Back to Login", command=self.create_login_frame, width=160).pack(pady=6)
+
+    def register_user(self):
+        uname = self.new_username_entry.get().strip()
+        pw = self.new_password_entry.get().strip()
+        role_raw = self.role_var.get().strip()
+        role = self.normalize_role(role_raw)
+
+        if not uname or not pw or role not in ("Administrator", "Researcher", "Investor"):
+            messagebox.showerror("Error", "All fields required and select a role.")
+            return
+        if uname in self.users:
+            messagebox.showerror("Error", "Username already exists.")
+            return
+
+        self.users[uname] = {"password": pw, "role": role}
+        self.save_users()
+        messagebox.showinfo("Success", "Registered. You can now login.")
+        self.create_login_frame()
+
+    def check_login(self):
+        uname = self.username_entry.get().strip()
+        pw = self.password_entry.get().strip()
+        if not uname or not pw:
+            messagebox.showerror("Error", "Enter username and password.")
+            return
+        if uname in self.users and self.users[uname]["password"] == pw:
+            self.current_user = uname
+            # normalize/clean stored role
+            self.current_role = self.normalize_role(self.users[uname].get("role", ""))
+            self.create_main_menu()
+        else:
+            messagebox.showerror("Login Failed", "Invalid credentials.")
+
+    # Main menu - role based
+    def create_main_menu(self):
+        self.clear_frame()
+        theme = self.get_role_theme()
+
+        header = ctk.CTkFrame(self.window, fg_color=theme["secondary"])
+        header.pack(fill="x", padx=12, pady=8)
+
+        ctk.CTkLabel(header, text=f"Logged in as: {self.current_user} ({self.current_role})",
+                     font=("Arial", 11), text_color=theme["accent"]).pack(pady=6)
+        ctk.CTkLabel(header, text="African Critical Minerals Dashboard",
+                     font=("Arial", 20, "bold"), text_color=theme["accent"]).pack(pady=(0, 8))
+
+        menu_frame = ctk.CTkFrame(self.window, fg_color=theme["primary"])
+        menu_frame.pack(fill="both", expand=True, padx=40, pady=12)
+
+        # Decide which buttons to show (completely hiding others) depending on the role
+        buttons = []
+
+        if self.current_role == "Administrator":
+            buttons = [
+                ("Mineral Database", self.mineral_database),
+                ("Geographical Data", self.geographical_data),
+                ("Country Profile", self.country_profile),
+                ("Interactive Charts", self.interactive_charts),
+                ("Production & Export Data", self.production_export_data),
+                ("Export Data", self.export_data),
+                ("User Management", self.user_management),
+                ("System Settings", self.system_settings)
+            ]
+
+        elif self.current_role == "Researcher":
+            buttons = [
+                ("Mineral Database", self.mineral_database),
+                ("Country Profile", self.country_profile),
+                ("Interactive Charts", self.interactive_charts),
+                ("Production & Export Data", self.production_export_data),
+                ("Export Data", self.export_data),
+                ("Add Research Insights", self.add_research_insights)
+            ]
+        else:  # Investor
+            buttons = [
+                ("Country Profile", self.country_profile),
+                ("Interactive Charts", self.interactive_charts),
+                ("Export Data", self.export_data),
+                ("Production & Export Data", self.production_export_data)
+            ]
+
+        for txt, cmd in buttons:
+            ctk.CTkButton(menu_frame, text=txt, command=cmd,
+                          width=320, height=36, fg_color=theme["secondary"],
+                          hover_color=theme["accent"]).pack(pady=8)
+
+        ctk.CTkButton(self.window, text="Logout", command=self.logout, width=160).pack(pady=8)
+
+    # Sample data
+    def create_sample_data(self):
+        self.minerals_df = pd.DataFrame({
+            'MineralID': [1, 2, 3, 4],
+            'MineralName': ['Cobalt', 'Lithium', 'Graphite', 'Manganese'],
+            'Description': ['Used in batteries and alloys', 'Essential for EV batteries',
+                            'Used in batteries and lubricants', 'Used in steel production'],
+            'MarketPriceUSD_per_tonne': [52000, 70000, 800, 2200]
+        })
+
+        self.production_df = pd.DataFrame({
+            'StatiD': [1, 2, 3, 4, 5, 6],
+            'Year': [2023, 2023, 2023, 2023, 2024, 2024],
+            'CountryID': [1, 2, 3, 4, 1, 2],
+            'MineralID': [1, 2, 3, 4, 1, 2],
+            'Production_tomies': [100000, 120000, 50000, 200000, 110000, 130000],
+            'ExportValue_BillionUSD': [5.2, 8.4, 0.9, 2.7, 6.0, 9.1]
+        })
+
+        self.countries_df = pd.DataFrame({
+            'CountryID': [1, 2, 3, 4],
+            'CountryName': ['DRC (Congo)', 'South Africa', 'Mozambique', 'Namibia'],
+            'Capital': ['Kinshasa', 'Pretoria', 'Maputo', 'Windhoek'],
+            'GDP_BillionUSD': [55, 350, 20, 15],
+            'MiningRevenue_BillionUSD': [12, 25, 4, 3],
+            'Population_Millions': [95, 60, 32, 2.5],
+            'MainMinerals': ['Cobalt, Copper, Diamonds', 'Gold, Platinum, Lithium',
+                             'Graphite, Coal, Titanium', 'Diamonds, Uranium, Manganese']
+        })
+
+    # Page header / common UI
+    def create_role_header(self, title):
+        theme = self.get_role_theme()
+        header = ctk.CTkFrame(self.window, fg_color=theme["secondary"])
+        header.pack(fill="x", padx=12, pady=6)
+        ctk.CTkLabel(header, text=title, font=("Arial", 18, "bold"), text_color=theme["accent"]).pack(pady=8)
+        return theme
+
+    def create_back_button(self, theme):
+        ctk.CTkButton(self.window, text=" Back to Main Menu", command=self.create_main_menu,
+                      width=160, fg_color=theme["secondary"]).pack(pady=10)
+
+    # Pages you will see when you press the button
+    def mineral_database(self):
+        self.clear_frame()
+        theme = self.create_role_header("Mineral Database")
+
+        scroll = ctk.CTkScrollableFrame(self.window)
+        scroll.pack(fill="both", expand=True, padx=20, pady=10)
+
+        for _, r in self.minerals_df.iterrows():
+            card = ctk.CTkFrame(scroll, fg_color=theme["primary"])
+            card.pack(fill="x", padx=10, pady=6)
+            ctk.CTkLabel(card, text=f" {r['MineralName']}", font=("Arial", 14, "bold"),
+                         text_color=theme["accent"]).pack(anchor="center", padx=8, pady=(6, 2))
+            ctk.CTkLabel(card, text=f"Description: {r['Description']}", font=("Arial", 11)).pack(anchor="center", padx=8)
+            ctk.CTkLabel(card, text=f"Price: ${r['MarketPriceUSD_per_tonne']:,.0f}/tonne", font=("Arial", 11, "bold"),
+                         text_color="yellow").pack(anchor="center", padx=8, pady=(0, 6))
+
+        # Only show Edit/Delete buttons for Administrator
+        if self.current_role == "Administrator":
+            btns = ctk.CTkFrame(self.window)
+            btns.pack(pady=6)
+            ctk.CTkButton(btns, text="Edit Mineral Data", command=self.edit_mineral_data, width=140).pack(side="left", padx=6)
+            ctk.CTkButton(btns, text="Delete Mineral", command=self.delete_mineral_data, width=140).pack(side="left", padx=6)
+            ctk.CTkButton(btns, text="Export Mineral Data", command=self.export_mineral_data, width=140).pack(side="left", padx=6)
+        else:
+            # researchers & investors get export button (view-only otherwise)
+            ctk.CTkButton(self.window, text="Export Mineral Data", command=self.export_mineral_data, width=180).pack(pady=6)
+
+        self.create_back_button(theme)
+
+    def geographical_data(self):
+        self.clear_frame()
+        theme = self.create_role_header("Geographical Data")
+
+        html = """
+        <!DOCTYPE html><html><head><title>African Mining Sites</title>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+        <style>#map{height:420px;width:100%;}.leaflet-popup-content{font-size:13px;}</style>
+        </head><body><div id="map"></div>
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+        <script>var map=L.map('map').setView([-8,25],4);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+        """
+
+        coords = {1: [-4.0383, 21.7587], 2: [-28.4793, 24.6727], 3: [-18.6657, 35.5296], 4: [-22.9576, 18.4904]}
+        merged = pd.merge(self.production_df, self.minerals_df, on='MineralID')
+        merged = pd.merge(merged, self.countries_df, on='CountryID')
+
+        for _, row in merged.iterrows():
+            lat, lng = coords[row['CountryID']]
+            html += f"L.marker([{lat},{lng}]).addTo(map).bindPopup('<b>{row['CountryName']} - {row['MineralName']}</b><br>Production: {row['Production_tomies']:,.0f} tonnes<br>Export: ${row['ExportValue_BillionUSD']}B<br>Year: {row['Year']}');"
+
+        html += "</script></body></html>"
+
+        map_file = "mining_map.html"
+        with open(map_file, "w", encoding="utf-8") as f:
+            f.write(html)
+
+        ctk.CTkButton(self.window, text=" Open Interactive Map in Browser",
+                      command=lambda: webbrowser.open(f"file://{os.path.abspath(map_file)}"),
+                      width=260).pack(pady=8)
+
+        frame = ctk.CTkFrame(self.window, fg_color=theme["primary"])
+        frame.pack(fill="both", expand=True, padx=12, pady=8)
+        ctk.CTkLabel(frame, text="Production Sites (sample)", font=("Arial", 13, "bold"),
+                     text_color=theme["accent"]).pack(anchor="w", padx=8, pady=6)
+
+        for _, row in merged.iterrows():
+            ctk.CTkLabel(frame, text=f" {row['CountryName']} - {row['MineralName']} - {row['Production_tomies']:,.0f} t - ${row['ExportValue_BillionUSD']}B - {row['Year']}",
+                         font=("Arial", 11)).pack(anchor="w", padx=12, pady=3)
+
+        self.create_back_button(theme)
+
+    def country_profile(self):
+        self.clear_frame()
+        theme = self.create_role_header("Country Profiles")
+
+        tab = ctk.CTkTabview(self.window)
+        tab.pack(fill="both", expand=True, padx=12, pady=8)
+
+        for cname in self.countries_df['CountryName']:
+            t = tab.add(cname)
+            t.configure(fg_color=theme["primary"])
+            cdata = self.countries_df[self.countries_df['CountryName'] == cname].iloc[0]
+
+            info = ctk.CTkFrame(t, fg_color=theme["primary"])
+            info.pack(fill="both", expand=True, padx=8, pady=8)
+
+            basic = (f"Capital: {cdata['Capital']}\nGDP: ${cdata['GDP_BillionUSD']}B\n"
+                     f"Mining Revenue: ${cdata['MiningRevenue_BillionUSD']}B\nPopulation: {cdata['Population_Millions']}M\n"
+                     f"Main Minerals: {cdata['MainMinerals']}")
+            ctk.CTkLabel(info, text=basic, justify="left", font=("Arial", 11)).pack(anchor="w", padx=8, pady=6)
+
+
+        self.create_back_button(theme)
+
+    def interactive_charts(self):
+        self.clear_frame()
+        theme = self.create_role_header("Interactive Charts")
+
+        tab = ctk.CTkTabview(self.window)
+        tab.pack(fill="both", expand=True, padx=12, pady=8)
+        for name in ["Mineral Prices", "Production Data"]:
+            tab.add(name).configure(fg_color=theme["primary"])
+
+        # Mineral Prices
+        axfig1 = tab.tab("Mineral Prices")
+        fig1, ax1 = plt.subplots(figsize=(7.5, 4))
+        colors = ['red', 'green', 'blue', 'orange'] if self.current_role != "Researcher" else ['blue', 'navy', 'lightblue', 'cyan']
+        self.minerals_df.plot.bar(x='MineralName', y='MarketPriceUSD_per_tonne', ax=ax1, legend=False, color=colors)
+        ax1.set_title("Mineral Prices (USD/tonne)")
+        canvas1 = FigureCanvasTkAgg(fig1, axfig1)
+        canvas1.draw()
+        canvas1.get_tk_widget().pack(fill="both", expand=True, padx=8, pady=8)
+
+        # Production Data
+        axfig2 = tab.tab("Production Data")
+        merged = pd.merge(self.production_df, self.minerals_df, on='MineralID')
+        merged = pd.merge(merged, self.countries_df, on='CountryID')
+        fig2, ax2 = plt.subplots(figsize=(8, 4.5))
+        prod2023 = merged[merged['Year'] == 2023]
+        pivot = prod2023.pivot_table(index='CountryName', columns='MineralName', values='Production_tomies', aggfunc='sum').fillna(0)
+        pivot.plot(kind='bar', ax=ax2, width=0.8)
+        ax2.set_title("Mineral Production by Country (2023)")
+        canvas2 = FigureCanvasTkAgg(fig2, axfig2)
+        canvas2.draw()
+        canvas2.get_tk_widget().pack(fill="both", expand=True, padx=8, pady=8)
+
+        self.create_back_button(theme)
+
+    def production_export_data(self):
+        self.clear_frame()
+        theme = self.create_role_header("Production & Export Data")
+
+        merged = pd.merge(self.production_df, self.minerals_df, on='MineralID')
+        merged = pd.merge(merged, self.countries_df, on='CountryID')
+
+        scroll = ctk.CTkScrollableFrame(self.window)
+        scroll.pack(fill="both", expand=True, padx=12, pady=8)
+
+        hdr = ctk.CTkFrame(scroll, fg_color=theme["secondary"])
+        hdr.pack(fill="x", pady=4)
+        headers = ["Year", "Country", "Mineral", "Production (t)", "Export (B USD)"]
+        for i, h in enumerate(headers):
+            ctk.CTkLabel(hdr, text=h, font=("Arial", 11, "bold"), width=150).grid(row=0, column=i, padx=4, pady=6)
+
+        for _, r in merged.iterrows():
+            rowf = ctk.CTkFrame(scroll, fg_color=theme["primary"])
+            rowf.pack(fill="x", pady=2)
+            ctk.CTkLabel(rowf, text=str(r['Year']), width=150).grid(row=0, column=0, padx=4, pady=6)
+            ctk.CTkLabel(rowf, text=r['CountryName'], width=150).grid(row=0, column=1, padx=4, pady=6)
+            ctk.CTkLabel(rowf, text=r['MineralName'], width=150).grid(row=0, column=2, padx=4, pady=6)
+            ctk.CTkLabel(rowf, text=f"{r['Production_tomies']:,.0f}", width=150).grid(row=0, column=3, padx=4, pady=6)
+            ctk.CTkLabel(rowf, text=f"${r['ExportValue_BillionUSD']}", width=150, text_color="lightgreen").grid(row=0, column=4, padx=4, pady=6)
+
+        # Admin could have edit/delete for production in future - hidden for non-admin
+        if self.current_role == "Administrator":
+            ctk.CTkButton(self.window, text="Edit Production Data (Admin)", width=220).pack(pady=6)
+
+        self.create_back_button(theme)
+
+    # Admin: user management & system settings
+    def user_management(self):
+        if self.current_role != "Administrator":
+            messagebox.showerror("Access Denied", "Only Administrators can access user management.")
+            return
+
+        self.clear_frame()
+        theme = self.create_role_header("User Management - ADMIN ONLY")
+
+        frame = ctk.CTkFrame(self.window, fg_color=theme["primary"])
+        frame.pack(fill="both", expand=True, padx=12, pady=8)
+
+        ctk.CTkLabel(frame, text="Users", font=("Arial", 14, "bold")).pack(anchor="w", padx=8, pady=6)
+
+        listf = ctk.CTkFrame(frame)
+        listf.pack(fill="both", expand=True, padx=8, pady=6)
+
+        # header
+        hdr = ctk.CTkFrame(listf, fg_color=theme["secondary"])
+        hdr.pack(fill="x", pady=(0, 6))
+        ctk.CTkLabel(hdr, text="Username", width=180).grid(row=0, column=0, padx=6, pady=6)
+        ctk.CTkLabel(hdr, text="Role", width=120).grid(row=0, column=1, padx=6, pady=6)
+        ctk.CTkLabel(hdr, text="Actions", width=220).grid(row=0, column=2, padx=6, pady=6)
+
+        for user, data in sorted(self.users.items()):
+            rf = ctk.CTkFrame(listf, fg_color=theme["primary"])
+            rf.pack(fill="x", pady=2)
+            ctk.CTkLabel(rf, text=user, width=180).grid(row=0, column=0, padx=6, pady=6)
+            ctk.CTkLabel(rf, text=data["role"], width=120).grid(row=0, column=1, padx=6, pady=6)
+
+            actions = ctk.CTkFrame(rf, fg_color=theme["primary"])
+            actions.grid(row=0, column=2, padx=6, pady=6)
+
+            ctk.CTkButton(actions, text="Reset PW", width=90, command=lambda u=user: self.reset_user_password(u)).pack(side="left", padx=3)
+            ctk.CTkButton(actions, text="Change Role", width=100, command=lambda u=user: self.change_user_role(u)).pack(side="left", padx=3)
+            if user != self.current_user:
+                ctk.CTkButton(actions, text="Delete", width=80, command=lambda u=user: self.delete_user(u)).pack(side="left", padx=3)
+
+        self.create_back_button(theme)
+
+    def reset_user_password(self, username):
+        new_pw = simpledialog.askstring("Reset Password", f"Enter new password for {username}:", parent=self.window, show='*')
+        if new_pw:
+            self.users[username]["password"] = new_pw.strip()
+            self.save_users()
+            messagebox.showinfo("Success", "Password updated.")
+
+    def change_user_role(self, username):
+        new_role = simpledialog.askstring("Change Role", f"Enter new role for {username} (Administrator/Researcher/Investor):", parent=self.window)
+        if new_role:
+            nr = self.normalize_role(new_role)
+            if nr in ("Administrator", "Researcher", "Investor"):
+                self.users[username]["role"] = nr
+                self.save_users()
+                messagebox.showinfo("Success", "Role updated.")
+                self.user_management()
+            else:
+                messagebox.showerror("Error", "Invalid role.")
+
+    def delete_user(self, username):
+        if username not in self.users:
+            messagebox.showerror("Error", "User not found.")
+            return
+        confirm = messagebox.askyesno("Confirm", f"Delete user {username}?")
+        if confirm:
+            del self.users[username]
+            self.save_users()
+            messagebox.showinfo("Deleted", "User removed.")
+            self.user_management()
+
+    def system_settings(self):
+        if self.current_role != "Administrator":
+            messagebox.showerror("Access Denied", "Only Administrators can access settings.")
+            return
+        self.clear_frame()
+        theme = self.create_role_header("System Settings - ADMIN ONLY")
+        ctk.CTkButton(self.window, text="Backup users CSV", width=200, command=self.backup_users_csv).pack(pady=8)
+        ctk.CTkButton(self.window, text="Reload users from disk", width=200, command=self.load_users).pack(pady=8)
+        self.create_back_button(theme)
+
+    def backup_users_csv(self):
+        try:
+            src = self.users_file
+            dst = f"{self.users_file}.bak"
+            with open(src, "r", encoding="utf-8") as s:
+                with open(dst, "w", encoding="utf-8") as d:
+                    d.write(s.read())
+            messagebox.showinfo("Backup", f"Backup saved to {dst}")
+        except Exception as e:
+            messagebox.showerror("Backup failed", str(e))
+
+    # Researcher / Export features
+    def add_research_insights(self):
+        if self.current_role != "Researcher":
+            messagebox.showerror("Access Denied", "Only Researchers can add insights.")
+            return
+        self.clear_frame()
+        theme = self.create_role_header("Add Research Insights")
+
+        frame = ctk.CTkFrame(self.window, fg_color=theme["primary"])
+        frame.pack(fill="both", expand=True, padx=12, pady=8)
+
+        ctk.CTkLabel(frame, text="Insight Title:", anchor="center").pack(anchor="center", padx=8, pady=(8, 2))
+        title_e = ctk.CTkEntry(frame, width=520)
+        title_e.pack(padx=8, pady=4)
+
+        ctk.CTkLabel(frame, text="Details:", anchor="center").pack(anchor="center", padx=8, pady=(8, 2))
+        details = tk.Text(frame, height=8, width=70)
+        details.pack(padx=8, pady=4)
+
+        def save():
+            t = title_e.get().strip()
+            d = details.get("1.0", tk.END).strip()
+            if not t or not d:
+                messagebox.showerror("Error", "Both title and details required.")
+                return
+            try:
+                with open("research_insights.csv", "a", newline="", encoding="utf-8") as f:
+                    csv.writer(f).writerow([self.current_user, t, d])
+                messagebox.showinfo("Saved", "Insight saved.")
+                title_e.delete(0, tk.END)
+                details.delete("1.0", tk.END)
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
+
+        ctk.CTkButton(frame, text="Save Insight", command=save, width=160).pack(pady=8)
+        self.create_back_button(theme)
+
+    def export_data(self):
+        # allowed for all roles per requirements
+        self.clear_frame()
+        theme = self.create_role_header("Export Data")
+        ctk.CTkLabel(self.window, text="Export the merged production/mineral/country dataset to CSV").pack(pady=8)
+
+        def do_export():
+            try:
+                merged = pd.merge(self.production_df, self.minerals_df, on='MineralID')
+                merged = pd.merge(merged, self.countries_df, on='CountryID')
+                fname = "exported_data.csv"
+                merged.to_csv(fname, index=False)
+                messagebox.showinfo("Exported", f"Exported to {fname}")
+            except Exception as e:
+                messagebox.showerror("Error", str(e))
+
+        ctk.CTkButton(self.window, text="Export Merged Data to CSV", command=do_export, width=260).pack(pady=8)
+        self.create_back_button(theme)
+
+    # Admin edit/delete minerals
+    def edit_mineral_data(self):
+        if self.current_role != "Administrator":
+            messagebox.showerror("Access Denied", "Only Administrators can edit minerals.")
+            return
+
+        def open_editor():
+            sel = sel_var.get()
+            if not sel:
+                messagebox.showerror("Error", "Select a mineral first.")
+                return
+            mid = int(sel.split(":")[0])
+            row = self.minerals_df[self.minerals_df['MineralID'] == mid].iloc[0]
+
+            editor = ctk.CTkToplevel()
+            editor.geometry("420x300")
+            editor.title(f"Edit {row['MineralName']}")
+
+            ctk.CTkLabel(editor, text="Mineral Name").pack(pady=(10, 0))
+            name_e = ctk.CTkEntry(editor)
+            name_e.pack(pady=6)
+            name_e.insert(0, row['MineralName'])
+
+            ctk.CTkLabel(editor, text="Description").pack(pady=(6, 0))
+            desc_e = ctk.CTkEntry(editor, width=380)
+            desc_e.pack(pady=6)
+            desc_e.insert(0, row['Description'])
+
+            ctk.CTkLabel(editor, text="Price (USD/tonne)").pack(pady=(6, 0))
+            price_e = ctk.CTkEntry(editor)
+            price_e.pack(pady=6)
+            price_e.insert(0, str(row['MarketPriceUSD_per_tonne']))
+
+            def save_changes():
+                try:
+                    name = name_e.get().strip()
+                    desc = desc_e.get().strip()
+                    price = float(price_e.get().strip())
+                    self.minerals_df.loc[self.minerals_df['MineralID'] == mid, 'MineralName'] = name
+                    self.minerals_df.loc[self.minerals_df['MineralID'] == mid, 'Description'] = desc
+                    self.minerals_df.loc[self.minerals_df['MineralID'] == mid, 'MarketPriceUSD_per_tonne'] = price
+                    messagebox.showinfo("Saved", "Mineral updated.")
+                    editor.destroy()
+                    self.mineral_database()
+                except Exception as e:
+                    messagebox.showerror("Error", str(e))
+
+            ctk.CTkButton(editor, text="Save", command=save_changes).pack(pady=10)
+
+        edit_win = ctk.CTkToplevel()
+        edit_win.geometry("360x260")
+        edit_win.title("Select Mineral to Edit")
+        ctk.CTkLabel(edit_win, text="Choose mineral:").pack(pady=(10, 6))
+        sel_var = tk.StringVar(value="")
+
+        for _, r in self.minerals_df.iterrows():
+            val = f"{int(r['MineralID'])}: {r['MineralName']}"
+            ctk.CTkRadioButton(edit_win, text=val, variable=sel_var, value=val).pack(anchor="w", padx=12, pady=4)
+
+        ctk.CTkButton(edit_win, text="Edit Selected", command=open_editor).pack(pady=10)
+
+    def delete_mineral_data(self):
+        if self.current_role != "Administrator":
+            messagebox.showerror("Access Denied", "Only Administrators can delete minerals.")
+            return
+
+        def do_delete():
+            s = sel_var.get()
+            if not s:
+                messagebox.showerror("Error", "Select a mineral first.")
+                return
+            mid = int(s.split(":")[0])
+            confirm = messagebox.askyesno("Confirm", f"Delete mineral ID {mid}?")
+            if confirm:
+                self.minerals_df = self.minerals_df[self.minerals_df['MineralID'] != mid].reset_index(drop=True)
+                messagebox.showinfo("Deleted", "Mineral removed.")
+                delete_win.destroy()
+                self.mineral_database()
+
+        delete_win = ctk.CTkToplevel()
+        delete_win.geometry("360x260")
+        delete_win.title("Delete Mineral")
+        ctk.CTkLabel(delete_win, text="Select mineral to delete:").pack(pady=(10, 6))
+        sel_var = tk.StringVar(value="")
+
+        for _, r in self.minerals_df.iterrows():
+            val = f"{int(r['MineralID'])}: {r['MineralName']}"
+            ctk.CTkRadioButton(delete_win, text=val, variable=sel_var, value=val).pack(anchor="w", padx=12, pady=4)
+
+        ctk.CTkButton(delete_win, text="Delete", command=do_delete).pack(pady=10)
+
+    def export_mineral_data(self):
+        try:
+            fname = "minerals_export.csv"
+            self.minerals_df.to_csv(fname, index=False)
+            messagebox.showinfo("Exported", f"Mineral data exported to {fname}")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    # -------------------------
+    # Logout
+    # -------------------------
+    def logout(self):
+        confirm = messagebox.askyesno("Logout", "Log out?")
+        if confirm:
+            self.current_user = None
+            self.current_role = None
+            self.create_login_frame()
+
+
+def run_app():
+    root = ctk.CTk()
+    app = CriticalMineralsApp(root)
+    root.mainloop()
+
+
+if __name__ == "__main__":
+    run_app()
+
