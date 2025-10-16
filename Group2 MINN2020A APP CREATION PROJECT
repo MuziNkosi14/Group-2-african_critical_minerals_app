@@ -718,9 +718,7 @@ class CriticalMineralsApp:
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
-    # -------------------------
     # Logout
-    # -------------------------
     def logout(self):
         confirm = messagebox.askyesno("Logout", "Log out?")
         if confirm:
