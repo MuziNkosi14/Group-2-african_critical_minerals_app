@@ -1,0 +1,11 @@
+
+Key authoritative sources used to populate production numbers and country estimates:
+- U.S. Geological Survey, Mineral Commodity Summaries (MCS) 2024 and 2025 (commodity tables for Cobalt, Lithium, Graphite, Manganese). 
+  Examples: https://pubs.usgs.gov/periodicals/mcs2025/mcs2025-cobalt.pdf, mcs2025-lithium.pdf, mcs2025-graphite.pdf, mcs2025-manganese.pdf
+- British Geological Survey, World Mineral Production 2019-2023 (World Mineral Production data tables). See BGS World Mineral Production 2019-2023 PDF.
+- World Bank / IMF country GDP datasets (for nominal GDP references).
+
+Notes:
+- Production figures were copied from USGS MCS commodity tables (2023 and 2024 data; 2024 estimates where available).
+- Some coordinates and 'site' names are approximate demo entries for mapping and UI testing only. Replace these with precise coordinates from national mining registries, company reports, or geospatial datasets (e.g., USGS geospatial compilations or national ministries).
+- Export values and some GDP/mining revenue fields are left blank or approximate; use World Bank trade data or UN Comtrade to compute export values precisely.

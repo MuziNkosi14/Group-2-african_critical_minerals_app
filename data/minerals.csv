@@ -1,0 +1,12 @@
+﻿MineralID,MineralName,Type,MarketPrice_USD_per_t
+1,Cobalt,Metal,35000
+2,Lithium,Metal,12000
+3,Graphite,Non-metal,850
+4,Manganese,Metal,180
+5,Copper,Metal,8500
+6,Uranium,Radioactive Metal,110000
+7,Diamond,Gemstone,2500000
+8,Bauxite,Ore,60
+9,Nickel,Metal,16500
+10,Platinum,PGM,28000000
+11,Iron Ore,Ore,115

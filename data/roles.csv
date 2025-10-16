@@ -1,0 +1,5 @@
+﻿RoleID,RoleName,Description
+1,Administrator,Full access to manage data and users
+2,Investor,Can view financial and production trends
+3,Researcher,Can view and export data
+4,Guest,Limited view access

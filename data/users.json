@@ -1,0 +1,61 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password_hash": "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",
+      "role": "Administrator",
+      "email": "admin@example.com",
+      "created_at": "2025-10-15T21:42:10.313537"
+    },
+    {
+      "id": 2,
+      "username": "opium5",
+      "password_hash": "19b0cfe6fe56d9bd170a0b195ab3e008fdde158152304f222378bb623622d8c9",
+      "role": "Researcher",
+      "email": "",
+      "created_at": "2025-10-15T21:43:22.931169"
+    },
+    {
+      "id": 3,
+      "username": "investor",
+      "password_hash": "df22016bdd63f389599331f364bc5064b1874b5cdd6c19ba52f4fab766274f2e",
+      "role": "Investor",
+      "email": "",
+      "created_at": "2025-10-15T22:23:07.234942"
+    },
+    {
+      "id": 4,
+      "username": "simon5",
+      "password_hash": "19b0cfe6fe56d9bd170a0b195ab3e008fdde158152304f222378bb623622d8c9",
+      "role": "Investor",
+      "email": "simon5@gmail.com",
+      "created_at": "2025-10-16T01:06:24.557680"
+    },
+    {
+      "id": 5,
+      "username": "opium6",
+      "password_hash": "scrypt:32768:8:1$SIP2ZJ3GM0O48mg4$5e89de08405db1ae66b5db892887a538e9f9b1e7f3d3636c72831f88bca3399f9cc345395e5e5f12f21aaf9adc222b7594c346e0bc2c58463ef0e6615af3b479",
+      "role": "Investor",
+      "email": "opium6@minerals.local",
+      "created_at": "2025-10-15T23:32:12.211110"
+    },
+    {
+      "id": 6,
+      "username": "opium7",
+      "password_hash": "scrypt:32768:8:1$acbulPjkvpSAQy3G$894d1cb433ab53bc4a739be396d40cdebb1065fd4136cc674af8b2e298dc592db92a6f3bbe82273c47324f696261264695fff890b9a40a43abd3b74671f1642c",
+      "role": "Researcher",
+      "email": "opium7@minerals.local",
+      "created_at": "2025-10-15T23:34:25.497421"
+    },
+    {
+      "id": 7,
+      "username": "sam22",
+      "password_hash": "scrypt:32768:8:1$mJNJMqbns2fiFG0a$40870336def4de16de0a0c2c51f1c90cc564c1d510b3a4a5a7bcc25de3a93541854caf45edfc26197944cc151b58bc820e162c3bf552b18d384fa5676637677f",
+      "role": "Administrator",
+      "email": "sam22@minerals.local",
+      "created_at": "2025-10-15T23:51:49.261723"
+    }
+  ],
+  "next_id": 8
+}

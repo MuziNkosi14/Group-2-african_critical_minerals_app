@@ -1,0 +1,13 @@
+﻿CountryID,CountryName,GDP_BillionUSD,MiningRevenue_BillionUSD,KeyProjects
+1,DRC (Congo),64.7,20.5,"Tenke Fungurume, Mutanda, Kamoto, Kamoa-Kakula"
+2,South Africa,405.3,45.2,"N'Chwaning/Kalahari Manganese, PGM belt (Impala, Anglo American), Venetia Diamond Mine"
+3,Mozambique,18.4,2.9,"Balama Graphite, Moma Heavy Sands, Moatize Coal"
+4,Zimbabwe,26.2,4.8,"Bikita Lithium, Arcadia Lithium, Unki PGM, Zimplats"
+5,Ghana,77.6,6.1,"Nsuta Manganese, Gold Fields Tarkwa, AngloGold Ashanti Obuasi"
+6,Gabon,21.0,3.5,"Mibango Manganese, COMILOG Manganese"
+7,Madagascar,14.6,0.8,"Ambatovy (Nickel/Cobalt), Graphite Projects (Tirupati, NextSource)"
+8,Zambia,29.7,7.8,"Kansanshi (Copper), Lumwana (Copper), Mopani Copper Mines"
+9,Namibia,12.9,2.2,"Rössing (Uranium), Husab (Uuranium), Oranjemund (Diamonds)"
+10,Botswana,20.3,3.9,"Jwaneng (Diamonds), Orapa (Diamonds), Debswana Mines"
+11,Nigeria,440.8,1.5,"Segilola Gold Project, Bitumen exploration projects"
+12,Guinea,21.1,5.5,"Simandou (Iron Ore), Sangaredi (Bauxite), AngloGold Ashanti Siguiri"
